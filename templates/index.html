@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>サッカーカレンダー</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h1>⚽ サッカーカレンダー</h1>
+
+<h2>お気に入りチーム</h2>
+
+<ul>
+    {% for team in teams %}
+        <li>⭐ {{ team }}</li>
+    {% endfor %}
+</ul>
+
+<h2>次の試合</h2>
+
+<ul>
+    {% for match in matches %}
+        <li>
+            {{ match.date }}<br>
+            {{ match.home }} vs {{ match.away }}
+        </li>
+        <br>
+    {% endfor %}
+</ul>
+
+</body>
+</html>
