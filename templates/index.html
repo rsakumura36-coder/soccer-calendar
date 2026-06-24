@@ -1,35 +1,20 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>サッカーカレンダー</title>
+<h2>チーム選択</h2>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+<form method="POST">
 
-<h1>⚽ サッカーカレンダー</h1>
+    <select name="team_id">
+        {% for name, id in teams.items() %}
+        <option value="{{ id }}">{{ name }}</option>
+        {% endfor %}
+    </select>
 
-<h2>お気に入りチーム</h2>
+    <button type="submit">
+        カレンダー登録
+    </button>
 
-<ul>
-    {% for team in teams %}
-        <li>⭐ {{ team }}</li>
-    {% endfor %}
-</ul>
+</form>
 
-<h2>次の試合</h2>
 
-<ul>
-    {% for match in matches %}
-        <li>
-            {{ match.date }}<br>
-            {{ match.home }} vs {{ match.away }}
-        </li>
-        <br>
-    {% endfor %}
-</ul>
-
-</body>
-</html>
+{% if message %}
+<p style="color:green;">{{ message }}</p>
+{% endif %}
