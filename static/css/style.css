@@ -1,0 +1,27 @@
+body {
+    background: #f5f6fa;
+    font-family: Arial, sans-serif;
+}
+
+/* タイトル */
+h1 {
+    margin-top: 20px;
+    text-align: center;
+}
+
+/* メインコンテナ */
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Bootstrapカードの補助調整 */
+.card {
+    border-radius: 12px;
+}
+
+/* カード間の余白（安全版） */
+.card + .card {
+    margin-top: 12px;
+}
