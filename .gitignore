@@ -1,4 +1,13 @@
-token.json
-credentials.json
-.env
+# Python
 __pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Cache
+cache/
+
+# Google API credentials
+credentials.json
+token.json

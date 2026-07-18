@@ -24,13 +24,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         teamSelect.innerHTML = "";
 
-        for (const [name, id] of Object.entries(teams)) {
+        for (const [name, team] of Object.entries(teams)) {
+
+            console.log(name, team);
 
             const option = document.createElement("option");
 
-            option.value = id;
+            option.value = team.id;
 
             option.textContent = name;
+
+            option.dataset.logo = team.logo;
 
             teamSelect.appendChild(option);
         }
@@ -57,26 +61,39 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const teamId = teamSelect.value;
 
-            const teamName = teamSelect.options[teamSelect.selectedIndex].text;
+            const teamName =
+                teamSelect.options[teamSelect.selectedIndex].text;
+
+            const logo =
+                teamSelect.options[teamSelect.selectedIndex].dataset.logo;
+
 
             const team = {
                 id: teamId,
                 name: teamName,
-                logo: `https://crests.football-data.org/${teamId}.png`
+                logo: logo
             };
+
 
             let favorites =
                 JSON.parse(localStorage.getItem("favorites")) || [];
+
 
             if (!favorites.some(t => t.id === team.id)) {
 
                 favorites.push(team);
 
-                localStorage.setItem("favorites", JSON.stringify(favorites));
+                localStorage.setItem(
+                    "favorites",
+                    JSON.stringify(favorites)
+                );
 
                 alert(`${team.name} をお気に入りに登録しました！`);
 
                 renderFavorites();
+
+                loadFavoriteMatches();
+
 
             } else {
 
@@ -271,7 +288,14 @@ async function loadFavoriteMatches() {
         const response = await fetch(`/api/team/${team.id}`);
 
         if(!response.ok){
-            console.log("API error:", team.name);
+
+            console.log(
+                "API error:",
+                team.name,
+                team.id,
+                response.status
+            );
+
             continue;
         }
 
