@@ -3,116 +3,120 @@ import requests
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
-# =========================
-# 初期設定
-# =========================
 load_dotenv()
 
 API_KEY = os.getenv("API_KEY")
+
 JST = timezone(timedelta(hours=9))
 
 
 # =========================
-# JST変換ユーティリティ
+# UTC変換
 # =========================
-def to_jst(utc_str):
-    return datetime.fromisoformat(
-        utc_str.replace("Z", "+00:00")
-    ).astimezone(JST)
+def to_utc(dt_str):
+    return datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
 
 
 # =========================
-# 過去試合フィルター（重要）
-# =========================
-def filter_future_matches(matches):
-    now = datetime.now(JST)
-
-    return [
-        m for m in matches
-        if m["start"] >= now
-    ]
-
-
-# =========================
-# リーグのチーム取得
+# チーム取得
 # =========================
 def get_league_teams(league_code):
 
-    print(f"🌐 get_league_teams: {league_code}")
-
     url = f"https://api.football-data.org/v4/competitions/{league_code}/teams"
 
-    headers = {
-        "X-Auth-Token": API_KEY
-    }
+    headers = {"X-Auth-Token": API_KEY}
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        res = requests.get(url, headers=headers, timeout=10)
+
     except Exception as e:
         print("❌ request error:", e)
         return {}
 
-    if response.status_code != 200:
-        print("❌ API Error:", response.status_code)
+    if res.status_code != 200:
+        print("❌ API Error:", res.status_code)
         return {}
 
-    data = response.json()
+    data = res.json()
+
 
     teams = {}
 
-    for team in data.get("teams", []):
-        teams[team["name"]] = team["id"]
+    for t in data.get("teams", []):
+
+        teams[t["name"]] = {
+
+            "id": t["id"],
+
+            "logo": t.get("crest")
+
+        }
 
     return teams
 
-
 # =========================
-# チームの試合取得（メイン）
+# 試合取得（UTC統一）
 # =========================
 def get_team_matches(team_id):
 
     print(f"🌐 get_team_matches: {team_id}")
 
     url = f"https://api.football-data.org/v4/teams/{team_id}/matches"
-
-    headers = {
-        "X-Auth-Token": API_KEY
-    }
+    headers = {"X-Auth-Token": API_KEY}
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        res = requests.get(url, headers=headers, timeout=10)
     except Exception as e:
         print("❌ request error:", e)
         return []
 
-    if response.status_code != 200:
-        print("❌ API Error:", response.status_code)
+    if res.status_code != 200:
+        print("❌ API Error:", res.status_code)
+        print(res.text)
         return []
 
-    data = response.json()
+    data = res.json()
 
     matches = []
 
-    for match in data.get("matches", []):
+    for m in data.get("matches", []):
 
         try:
-            dt = to_jst(match["utcDate"])
+            start_utc = to_utc(m["utcDate"])
 
             matches.append({
-                "home": match["homeTeam"]["name"],
-                "away": match["awayTeam"]["name"],
-                "competition": match["competition"]["name"],
-                "start": dt,
-                "end": dt + timedelta(hours=2),
-                "match_id": match["id"]
+                "id": m["id"],
+
+                "home": m["homeTeam"]["name"],
+                "away": m["awayTeam"]["name"],
+
+                "home_id": m["homeTeam"]["id"],
+                "away_id": m["awayTeam"]["id"],
+
+                "home_logo": m["homeTeam"].get("crest"),
+                "away_logo": m["awayTeam"].get("crest"),
+
+                "competition": m["competition"]["name"],
+
+                # ⭐ 重要：UTCで統一
+                "start_utc": start_utc,
+                "end_utc": start_utc + timedelta(hours=2),
             })
 
         except Exception as e:
             print("⚠️ parse error:", e)
 
-    # =========================
-    # 🔥重要：未来だけ残す
-    # =========================
-    matches = filter_future_matches(matches)
-
     return matches
+
+
+# =========================
+# UTCフィルタ（安全）
+# =========================
+def filter_future_matches(matches):
+
+    now = datetime.now(timezone.utc)
+
+    return [
+        m for m in matches
+        if m.get("start_utc") and m["start_utc"] >= now
+    ]

@@ -1,27 +1,113 @@
+/* ==========================================
+   Soccer Calendar - Refactored CSS
+========================================== */
+
+/* ==========================================
+   Base
+========================================== */
+
 body {
     background: #f5f6fa;
     font-family: Arial, sans-serif;
 }
 
-/* タイトル */
-h1 {
-    margin-top: 20px;
-    text-align: center;
-}
-
-/* メインコンテナ */
+/* コンテナは柔軟に */
 .container {
-    max-width: 900px;
+    max-width: 960px;
     margin: auto;
     padding: 20px;
 }
 
-/* Bootstrapカードの補助調整 */
-.card {
+/* カード間隔 */
+.card + .card {
+    margin-top: 12px;
+}
+
+
+/* ==========================================
+   Header（コンポーネント化対応）
+========================================== */
+
+.app-header {
+    border-radius: 20px;
+}
+
+.app-title {
+    color: #0d6efd;
+}
+
+.header-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 22px;
+}
+
+
+/* ==========================================
+   Favorite Card
+========================================== */
+
+#favorite-list {
+    min-height: 120px;
+}
+
+#favorite-list .list-group-item {
+    border: none;
+    padding: 12px;
+    font-size: 16px;
+}
+
+
+/* ==========================================
+   Form Area
+========================================== */
+
+.form-label {
+    font-weight: 600;
+}
+
+.form-select {
     border-radius: 12px;
 }
 
-/* カード間の余白（安全版） */
-.card + .card {
-    margin-top: 12px;
+.btn-primary {
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+
+/* ==========================================
+   Match Card
+========================================== */
+
+.match-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.match-score {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+
+/* ==========================================
+   Responsive
+========================================== */
+
+@media (max-width: 768px) {
+
+    .app-title {
+        font-size: 1.8rem;
+    }
+
+    .header-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+    }
+
+    .container {
+        padding: 15px;
+    }
 }

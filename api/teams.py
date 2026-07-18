@@ -1,13 +1,14 @@
 # api/teams.py
 
-from api.cache import load_cache, save_cache
+from services.cache_service import load_cache, save_cache
 
 
 # =========================
 # 代表チーム（固定データ）
 # =========================
 def get_national_teams():
-    return {
+
+    teams = {
         "Spain": 760,
         "Argentina": 762,
         "France": 773,
@@ -18,11 +19,18 @@ def get_national_teams():
         "Germany": 759,
         "Belgium": 805,
         "Morocco": 793,
-        "Japan": 4384,
+        "Japan": 766,
         "South Korea": 4382,
         "Australia": 4390
     }
 
+    return {
+        name: {
+            "id": team_id,
+            "logo": f"https://crests.football-data.org/{team_id}.png"
+        }
+        for name, team_id in teams.items()
+    }
 
 # =========================
 # 全チーム取得

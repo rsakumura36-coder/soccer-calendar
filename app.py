@@ -1,23 +1,30 @@
-from flask import Flask, render_template, request
-import json
+from flask import Flask, render_template, request, jsonify
+from datetime import datetime
+import pytz
 
 from api.teams import get_all_teams
-from api.football_api import get_team_matches
-from api.cache import clear_cache
-from services.calendar_service import add_matches_to_calendar
+from services.match_service import get_processed_matches
 
 app = Flask(__name__)
 
-# =========================
-# 起動時ロード（キャッシュ or API）
-# =========================
 print("🚀 loading teams...")
 ALL_TEAMS = get_all_teams()
 print("✅ teams loaded")
 
 
 # =========================
-# メイン画面
+# JST変換
+# =========================
+def to_jst(dt):
+    if not dt:
+        return ""
+
+    jst = pytz.timezone("Asia/Tokyo")
+    return dt.astimezone(jst).strftime("%Y-%m-%d %H:%M")
+
+
+# =========================
+# ホーム
 # =========================
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -27,24 +34,19 @@ def index():
 
     matches = []
     message = None
-    calendar_links = []
 
-    # =========================
-    # ユーザー操作（試合取得）
-    # =========================
     if request.method == "POST":
 
         team_id = request.form.get("team_id")
+        print("選択された team_id =", team_id)
 
         if team_id:
 
-            team_id = int(team_id)
+            matches = get_processed_matches(int(team_id))
 
-            # 試合取得
-            matches = get_team_matches(team_id)
-
-            # カレンダー登録（services）
-            calendar_links = add_matches_to_calendar(matches)
+            # JST追加
+            for match in matches:
+                match["japanDate"] = to_jst(match["start"])
 
             message = f"{len(matches)}件の試合を取得しました"
 
@@ -55,29 +57,15 @@ def index():
         matches=matches,
         message=message,
         selected_league=selected_league,
-        all_teams=json.dumps(ALL_TEAMS),
-        calendar_links=calendar_links
+        all_teams=ALL_TEAMS
     )
 
+@app.route("/api/team/<int:team_id>")
+def api_team_matches(team_id):
 
-# =========================
-# 手動キャッシュ更新
-# =========================
-@app.route("/refresh")
-def refresh_cache():
+    matches = get_processed_matches(team_id)
 
-    # キャッシュ削除
-    clear_cache()
+    return jsonify(matches)
 
-    # 再取得（キャッシュ再生成）
-    global ALL_TEAMS
-    ALL_TEAMS = get_all_teams()
-
-    return "cache refreshed"
-
-
-# =========================
-# 起動
-# =========================
 if __name__ == "__main__":
     app.run(debug=True)
