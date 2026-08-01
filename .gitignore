@@ -6,7 +6,7 @@ __pycache__/
 .env
 
 # Cache
-cache/
+cache/*.json
 
 # Google API credentials
 credentials.json
