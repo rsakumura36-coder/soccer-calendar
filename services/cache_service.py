@@ -23,7 +23,7 @@ def load_cache():
             print("🕒 cache expired")
             return None
 
-        print("📦 cache使用")
+        print("📦 TEAM CACHE USED")
         return data["data"]
 
     except Exception as e:

@@ -18,15 +18,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // =========================
     function updateTeams(league) {
 
-        console.log("selected league:", league);
-
         const teams = allTeams?.[league] || {};
 
         teamSelect.innerHTML = "";
 
         for (const [name, team] of Object.entries(teams)) {
-
-            console.log(name, team);
 
             const option = document.createElement("option");
 
@@ -75,24 +71,63 @@ document.addEventListener("DOMContentLoaded", function () {
             };
 
 
-            let favorites =
-                JSON.parse(localStorage.getItem("favorites")) || [];
+            if (true) {
+
+                console.log("sending favorite:", team);
+
+                fetch("/api/favorite/add", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(team)
+
+                })
+                .then(response => {
+
+                    console.log("API response:", response.status);
+
+                    return response.json();
+
+                })
+                .then(data => {
+
+                    console.log("API data:", data);
 
 
-            if (!favorites.some(t => t.id === team.id)) {
+                    // localStorageにも保存
+                    let favorites =
+                        JSON.parse(localStorage.getItem("favorites")) || [];
 
-                favorites.push(team);
 
-                localStorage.setItem(
-                    "favorites",
-                    JSON.stringify(favorites)
-                );
+                    favorites.push(team);
 
-                alert(`${team.name} をお気に入りに登録しました！`);
 
-                renderFavorites();
+                    localStorage.setItem(
+                        "favorites",
+                        JSON.stringify(favorites)
+                    );
 
-                loadFavoriteMatches();
+
+                    alert(`${team.name} をお気に入りに登録しました！`);
+
+
+                    renderFavorites();
+
+                    loadFavoriteMatches();
+
+                })
+                .catch(error => {
+
+                    console.error(
+                        "favorite save error:",
+                        error
+                    );
+
+                });
 
 
             } else {
@@ -192,22 +227,63 @@ document.addEventListener("click", function (e) {
 
         const id = e.target.dataset.id;
 
-        let favorites =
-            JSON.parse(localStorage.getItem("favorites")) || [];
 
-        favorites = favorites.filter(team => team.id !== id);
+        fetch("/api/favorite/delete", {
 
-        localStorage.setItem(
-            "favorites",
-            JSON.stringify(favorites)
-        );
+            method: "POST",
 
-        renderFavorites();
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                id: id
+            })
+
+        })
+        .then(response => response.json())
+
+        .then(data => {
+
+
+            console.log(
+                "delete result:",
+                data
+            );
+
+
+            let favorites =
+                JSON.parse(localStorage.getItem("favorites")) || [];
+
+
+            favorites = favorites.filter(
+                team => team.id !== id
+            );
+
+
+            localStorage.setItem(
+                "favorites",
+                JSON.stringify(favorites)
+            );
+
+
+            renderFavorites();
+
+
+        })
+        .catch(error => {
+
+            console.error(
+                "favorite delete error:",
+                error
+            );
+
+        });
+
 
         return;
 
     }
-
     // チーム選択
     if (e.target.classList.contains("favorite-team-select")) {
 
@@ -281,60 +357,46 @@ async function loadFavoriteMatches() {
         return;
     }
 
-    let favoriteMatches = [];
+    const favoriteMatches = (
+        await Promise.all(
 
-    for (const team of favorites) {
+            favorites.map(async (team) => {
 
-        const response = await fetch(`/api/team/${team.id}`);
+                const response = await fetch(`/api/team/${team.id}`);
 
-        if(!response.ok){
+                if (!response.ok) {
 
-            console.log(
-                "API error:",
-                team.name,
-                team.id,
-                response.status
-            );
+                    console.log(
+                        "API error:",
+                        team.name,
+                        team.id,
+                        response.status
+                    );
 
-            continue;
-        }
+                    return null;
+                }
 
-        const matches = await response.json();
+                const matches = await response.json();
 
-        // 未来の試合だけ
-        const upcomingMatches = matches.filter(match => {
+                const upcomingMatches = matches
+                    .filter(match => new Date(match.start) >= new Date())
+                    .sort((a, b) => new Date(a.start) - new Date(b.start));
 
-            return new Date(match.start) >= new Date();
+                const nextMatch = upcomingMatches[0];
 
-        });
+                if (!nextMatch) {
+                    return null;
+                }
 
+                return {
+                    team,
+                    match: nextMatch
+                };
 
-        // 日付順
-        upcomingMatches.sort((a, b) => {
+            })
 
-            return new Date(a.start) - new Date(b.start);
-
-        });
-
-
-        // 直近1試合
-        const nextMatch = upcomingMatches[0];
-
-
-        console.log(team.name);
-        console.log(nextMatch);
-
-
-        if (nextMatch) {
-
-            favoriteMatches.push({
-                team: team,
-                match: nextMatch
-            });
-
-        }
-
-    }
+        )
+    ).filter(item => item !== null);
 
     const weekly = document.getElementById("weekly-matches");
 
@@ -418,8 +480,17 @@ async function loadFavoriteMatches() {
 
 async function loadTeamMatches(teamId) {
 
-
     const response = await fetch(`/api/team/${teamId}`);
+
+    if (!response.ok) {
+        console.error("API error:", response.status);
+
+        const weekly = document.getElementById("weekly-matches");
+        if (weekly) {
+            weekly.innerHTML = "<p>試合情報の取得に失敗しました。</p>";
+        }
+        return;
+    }
 
     const matches = await response.json();
 

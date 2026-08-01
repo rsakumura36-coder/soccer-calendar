@@ -37,15 +37,12 @@ def get_national_teams():
 # =========================
 def get_all_teams():
 
-    print(">>> get_all_teams START")
-
     # -------------------------
     # キャッシュ読み込み
     # -------------------------
     try:
         cached = load_cache()
         if cached:
-            print("📦 cache使用")
             return cached
     except Exception as e:
         print("⚠️ cache error:", e)
@@ -74,7 +71,6 @@ def get_all_teams():
     # -------------------------
     for league_name, league_code in leagues.items():
         try:
-            print(f"  → {league_name}")
             all_teams[league_name] = get_league_teams(league_code)
         except Exception as e:
             print(f"⚠️ {league_name} error:", e)

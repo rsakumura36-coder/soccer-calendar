@@ -1,8 +1,9 @@
 from api.football_api import get_team_matches, filter_future_matches
+from services.match_cache_service import load_match_cache, save_match_cache
 from datetime import timezone, timedelta
+from datetime import datetime
 
 JST = timezone(timedelta(hours=9))
-
 
 # =========================
 # JST変換（表示用のみ）
@@ -11,7 +12,6 @@ def to_jst(dt):
     if not dt:
         return None
     return dt.astimezone(JST)
-
 
 # =========================
 # 正規化（軽量）
@@ -42,27 +42,33 @@ def normalize_match(m):
 # =========================
 def get_processed_matches(team_id):
 
-    print("\n==============================")
-    print("🚀 FETCH TEAM ID:", team_id)
-    print("==============================")
+    # キャッシュ確認
+    matches = load_match_cache(team_id)
 
-    matches = get_team_matches(team_id)
+    if matches is not None:
 
-    print("🔥 RAW COUNT:", len(matches))
+        # JSONから戻した日時をdatetimeへ変換
+        for m in matches:
+            if isinstance(m.get("start_utc"), str):
+                m["start_utc"] = datetime.fromisoformat(
+                    m["start_utc"]
+                )
+
+    else:
+
+        print("🌐 API FETCH")
+
+        matches = get_team_matches(team_id)
+       
+        save_match_cache(team_id, matches)
 
     matches = [normalize_match(m) for m in matches]
 
-    print("📦 NORMALIZED COUNT:", len(matches))
-
     matches = filter_future_matches(matches)
-
-    print("📊 AFTER FILTER:", len(matches))
 
     # JSTはここで付与（表示用）
     for m in matches:
         m["start"] = to_jst(m["start_utc"])
         m["end"] = m["start"] + timedelta(hours=2)
-
-    print("🏁 FINAL COUNT:", len(matches))
 
     return matches
