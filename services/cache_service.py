@@ -2,6 +2,8 @@ import json
 import os
 import time
 
+os.makedirs("cache", exist_ok=True)
+
 CACHE_FILE = "cache/team_cache.json"
 TTL_SECONDS = 60 * 60 * 6  # 6時間
 
