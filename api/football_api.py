@@ -44,11 +44,20 @@ def get_league_teams(league_code):
 
     for t in data.get("teams", []):
 
+        print(
+            t["id"],
+            
+            t["name"],
+            t.get("venue")
+        )
+
         teams[t["name"]] = {
 
             "id": t["id"],
 
-            "logo": t.get("crest")
+            "logo": t.get("crest"),
+
+            "venue": t.get("venue")
 
         }
 
@@ -97,6 +106,8 @@ def get_team_matches(team_id):
                 "away_logo": m["awayTeam"].get("crest"),
 
                 "competition": m["competition"]["name"],
+
+                "venue": m.get("venue"),
 
                 # ⭐ 重要：UTCで統一
                 "start_utc": start_utc,

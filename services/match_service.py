@@ -2,6 +2,8 @@ from api.football_api import get_team_matches, filter_future_matches
 from services.match_cache_service import load_match_cache, save_match_cache
 from datetime import timezone, timedelta
 from datetime import datetime
+from data.team_names import TEAM_NAMES
+from data.stadiums import STADIUMS
 
 JST = timezone(timedelta(hours=9))
 
@@ -18,23 +20,83 @@ def to_jst(dt):
 # =========================
 def normalize_match(m):
 
+    home_id = m.get("home_id")
+    away_id = m.get("away_id")
+
     return {
         "id": m.get("id"),
 
+        # 元データ
         "home": m.get("home"),
         "away": m.get("away"),
 
-        "home_id": m.get("home_id"),
-        "away_id": m.get("away_id"),
+        # ID
+        "home_id": home_id,
+        "away_id": away_id,
 
+        # 日本語名
+        "home_jp": TEAM_NAMES.get(
+            home_id,
+            m.get("home")
+        ),
+
+        "away_jp": TEAM_NAMES.get(
+            away_id,
+            m.get("away")
+        ),
+
+        # ロゴ
         "home_logo": m.get("home_logo"),
         "away_logo": m.get("away_logo"),
 
+        # 大会
         "competition": m.get("competition"),
 
-        # UTC本体
+        # スタジアム
+        "stadium": STADIUMS.get(
+            home_id,
+            "スタジアム情報なし"
+        ),
+
+        # 元のvenueも残す
+        "venue": m.get("venue"),
+
+        # UTC
         "start_utc": m.get("start_utc"),
     }
+
+# =========================
+# 金曜〜翌週木曜フィルター
+# =========================
+def filter_weekly_matches(matches):
+
+    now = datetime.now(JST)
+
+    # 今週金曜日の日付を取得
+    days_until_friday = (
+        4 - now.weekday()
+    ) % 7
+
+    friday = (
+        now + timedelta(days=days_until_friday)
+    ).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+
+    # 翌週木曜日の終わりまで
+    thursday = friday + timedelta(days=7)
+
+    print("対象期間:")
+    print(friday)
+    print(thursday)
+
+    return [
+        m for m in matches
+        if friday <= m["start"] < thursday
+    ]
 
 
 # =========================
@@ -66,9 +128,15 @@ def get_processed_matches(team_id):
 
     matches = filter_future_matches(matches)
 
-    # JSTはここで付与（表示用）
+
+    # JST変換
     for m in matches:
         m["start"] = to_jst(m["start_utc"])
         m["end"] = m["start"] + timedelta(hours=2)
+
+
+    # 金曜〜翌週木曜だけ残す
+    matches = filter_weekly_matches(matches)
+
 
     return matches
