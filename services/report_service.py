@@ -2,6 +2,20 @@ from database.db import get_connection
 from services.match_service import get_processed_matches
 from data.team_names import TEAM_NAMES
 
+from datetime import datetime, timezone, timedelta
+
+JST = timezone(timedelta(hours=9))
+
+WEEKDAYS = [
+    "月",
+    "火",
+    "水",
+    "木",
+    "金",
+    "土",
+    "日"
+]
+
 
 def get_favorites():
 
@@ -47,10 +61,17 @@ def create_weekly_report():
     # 全チームの試合をまとめる
     all_matches = []
 
+    # 全チームの試合をまとめる
+    all_matches = []
+    match_ids = set()
+
     for team in teams:
 
         for match in team["matches"]:
-            all_matches.append(match)
+
+            if match["id"] not in match_ids:
+                all_matches.append(match)
+                match_ids.add(match["id"])
 
 
     # 日付順
@@ -72,8 +93,11 @@ def create_weekly_report():
 
         date = match["start"]
 
+        weekday = WEEKDAYS[date.weekday()]
+
         date_text = (
-            f"{date.month}月{date.day}日 "
+            f"{date.month}月{date.day}日"
+            f"({weekday}) "
             f"{date.strftime('%H:%M')}"
         )
 
