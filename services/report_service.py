@@ -32,6 +32,8 @@ def get_favorites():
 
     rows = cursor.fetchall()
 
+    print("DEBUG FAVORITES:", rows, flush=True)
+
     conn.close()
 
     return rows
