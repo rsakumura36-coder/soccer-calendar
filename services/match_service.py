@@ -89,10 +89,6 @@ def filter_weekly_matches(matches):
     # 翌週木曜日の終わりまで
     thursday = friday + timedelta(days=7)
 
-    print("対象期間:")
-    print(friday)
-    print(thursday)
-
     return [
         m for m in matches
         if friday <= m["start"] < thursday
@@ -121,22 +117,33 @@ def get_processed_matches(team_id):
         print("🌐 API FETCH")
 
         matches = get_team_matches(team_id)
-       
-        save_match_cache(team_id, matches)
+
+        if matches:
+            save_match_cache(team_id, matches)
+        else:
+            print("⚠️ API returned empty. Cache not saved.")
 
     matches = [normalize_match(m) for m in matches]
 
+    print("NORMALIZE COUNT:", len(matches))
+
+    for m in matches[:3]:
+        print(
+            m["home"],
+            m["away"],
+            m.get("start_utc")
+        )
+
+
     matches = filter_future_matches(matches)
+
+    print("FILTER COUNT:", len(matches))
 
 
     # JST変換
     for m in matches:
         m["start"] = to_jst(m["start_utc"])
         m["end"] = m["start"] + timedelta(hours=2)
-
-
-    # 金曜〜翌週木曜だけ残す
-    matches = filter_weekly_matches(matches)
 
 
     return matches

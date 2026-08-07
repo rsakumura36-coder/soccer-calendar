@@ -71,74 +71,81 @@ document.addEventListener("DOMContentLoaded", function () {
             };
 
 
-            if (true) {
-
-                console.log("sending favorite:", team);
-
-                fetch("/api/favorite/add", {
-
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-
-                    body: JSON.stringify(team)
-
-                })
-                .then(response => {
-
-                    console.log("API response:", response.status);
-
-                    return response.json();
-
-                })
-                .then(data => {
-
-                    console.log("API data:", data);
+            // localStorage取得
+            let favorites =
+                JSON.parse(localStorage.getItem("favorites")) || [];
 
 
-                    // localStorageにも保存
-                    let favorites =
-                        JSON.parse(localStorage.getItem("favorites")) || [];
+            // 重複チェック
+            const exists = favorites.some(
+                f => f.id === team.id
+            );
 
 
-                    favorites.push(team);
+            if (exists) {
 
+                alert(`${team.name} はすでに登録されています。`);
 
-                    localStorage.setItem(
-                        "favorites",
-                        JSON.stringify(favorites)
-                    );
-
-
-                    alert(`${team.name} をお気に入りに登録しました！`);
-
-
-                    renderFavorites();
-
-                    loadFavoriteMatches();
-
-                })
-                .catch(error => {
-
-                    console.error(
-                        "favorite save error:",
-                        error
-                    );
-
-                });
-
-
-            } else {
-
-                alert("すでに登録されています。");
+                return;
 
             }
 
+
+            console.log("sending favorite:", team);
+
+
+            fetch("/api/favorite/add", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(team)
+
+            })
+            .then(response => {
+
+                console.log("API response:", response.status);
+
+                return response.json();
+
+            })
+            .then(data => {
+
+                console.log("API data:", data);
+
+
+                // localStorage保存
+                favorites.push(team);
+
+                localStorage.setItem(
+                    "favorites",
+                    JSON.stringify(favorites)
+                );
+
+
+                alert(`${team.name} をお気に入りに登録しました！`);
+
+
+                renderFavorites();
+
+                loadFavoriteMatches();
+
+            })
+            .catch(error => {
+
+                console.error(
+                    "favorite save error:",
+                    error
+                );
+
+            });
+
         });
 
-    }
+    } 
 
 });
 
@@ -316,17 +323,29 @@ function formatDate(dateString) {
 
     const date = new Date(dateString);
 
-    return date.toLocaleString(
-        "ja-JP",
-        {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            weekday: "short",
-            hour: "2-digit",
-            minute: "2-digit"
-        }
-    );
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    const week = [
+        "日",
+        "月",
+        "火",
+        "水",
+        "木",
+        "金",
+        "土"
+    ][date.getDay()];
+
+    const hour = String(
+        date.getHours()
+    ).padStart(2,"0");
+
+    const minute = String(
+        date.getMinutes()
+    ).padStart(2,"0");
+
+
+    return `${month}/${day}(${week}) ${hour}:${minute}`;
 }
 
 function translateCompetition(name) {
@@ -338,6 +357,92 @@ function translateCompetition(name) {
     };
 
     return map[name] || name;
+}
+
+function renderMatchList(matches) {
+
+    const weekly = document.getElementById("weekly-matches");
+
+    if (!weekly) return;
+
+
+    weekly.innerHTML = matches.map(item => {
+
+        const match = item.match ?? item;
+
+
+        return `
+
+        <div class="list-group-item py-3">
+
+            <div class="row align-items-center">
+
+                <!-- 日時 -->
+                <div class="col-3 text-muted small">
+                    ${formatDate(match.start)}
+                </div>
+
+
+                <!-- 試合 -->
+                <div class="col-6 d-flex align-items-center justify-content-center flex-wrap">
+
+                    <!-- Home -->
+                    <div class="d-flex align-items-center">
+
+                        <img
+                            src="${match.home_logo}"
+                            width="28"
+                            class="me-2 img-fluid"
+                        >
+
+                        <span>
+                            ${match.home_jp ?? match.home}
+                        </span>
+
+                    </div>
+
+
+                    <span class="mx-2 fw-bold">
+                        vs
+                    </span>
+
+
+                    <!-- Away -->
+                    <div class="d-flex align-items-center">
+
+                        <img
+                            src="${match.away_logo}"
+                            width="30"
+                            class="me-2"
+                        >
+
+                        <span>
+                            ${match.away_jp ?? match.away}
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Stadium -->
+                <div class="col-3 text-muted text-end small">
+
+                    <span class="d-none d-md-inline">
+                        🏟 ${match.stadium}
+                    </span>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+        `;
+
+    }).join("");
+
 }
 
 async function loadFavoriteMatches() {
@@ -365,14 +470,6 @@ async function loadFavoriteMatches() {
                 const response = await fetch(`/api/team/${team.id}`);
 
                 if (!response.ok) {
-
-                    console.log(
-                        "API error:",
-                        team.name,
-                        team.id,
-                        response.status
-                    );
-
                     return null;
                 }
 
@@ -380,7 +477,10 @@ async function loadFavoriteMatches() {
 
                 const upcomingMatches = matches
                     .filter(match => new Date(match.start) >= new Date())
-                    .sort((a, b) => new Date(a.start) - new Date(b.start));
+                    .sort(
+                        (a, b) =>
+                        new Date(a.start) - new Date(b.start)
+                    );
 
                 const nextMatch = upcomingMatches[0];
 
@@ -398,72 +498,15 @@ async function loadFavoriteMatches() {
         )
     ).filter(item => item !== null);
 
-    const weekly = document.getElementById("weekly-matches");
 
-    if (!weekly) return;
+    // ★追加：試合日時順に並び替え
+    favoriteMatches.sort(
+        (a, b) =>
+        new Date(a.match.start) -
+        new Date(b.match.start)
+    );
 
-
-    weekly.innerHTML = favoriteMatches.map(item => {
-
-        const match = item.match;
-
-        return `
-
-        <div class="card mb-3">
-
-            <div class="card-body">
-
-                <h5>
-                    ⚽ ${item.team.name}
-                </h5>
-
-                <div class="d-flex align-items-center">
-
-                    <img 
-                        src="${match.home_logo}"
-                        width="40"
-                        class="me-2"
-                    >
-
-                    <span>
-                        ${match.home}
-                    </span>
-
-
-                    <span class="mx-2">
-                        vs
-                    </span>
-
-
-                    <span>
-                        ${match.away}
-                    </span>
-
-
-                    <img 
-                        src="${match.away_logo}"
-                        width="40"
-                        class="ms-2"
-                    >
-
-                </div>
-
-
-                <p>
-                    ${translateCompetition(match.competition)}
-                </p>
-
-
-                <small>
-                    ${formatDate(match.start)}
-                </small>
-
-
-            </div>
-
-        </div>
-
-    `}).join("");
+    renderMatchList(favoriteMatches);
 
     const backBtn = document.getElementById("back-favorites-btn");
 
@@ -512,15 +555,13 @@ async function loadTeamMatches(teamId) {
 
     const nextMatches = upcomingMatches.slice(0,5);
 
-    const weekly = document.getElementById("weekly-matches");
-
-    if (!weekly) return;
-
-
     if(nextMatches.length === 0){
 
+        const weekly =
+            document.getElementById("weekly-matches");
+
         weekly.innerHTML =
-        "<p>今後の試合はありません。</p>";
+            "<p>今後の試合はありません。</p>";
 
         return;
 
@@ -532,47 +573,7 @@ async function loadTeamMatches(teamId) {
 
     }
 
-    weekly.innerHTML = nextMatches.map(match => `
-
-        <div class="card mb-3">
-
-            <div class="card-body">
-
-                <div class="d-flex align-items-center">
-
-                    <img 
-                    src="${match.home_logo}"
-                    width="40"
-                    class="me-2">
-
-                    ${match.home}
-
-                    <span class="mx-2">
-                    vs
-                    </span>
-
-                    ${match.away}
-
-                    <img 
-                    src="${match.away_logo}"
-                    width="40"
-                    class="ms-2">
-
-                </div>
-
-                <p>
-                ${translateCompetition(match.competition)}
-                </p>
-
-                <small>
-                ${formatDate(match.start)}
-                </small>
-
-            </div>
-
-        </div>
-
-    `).join("");
+    renderMatchList(nextMatches);
 
 }
 

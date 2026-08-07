@@ -1,5 +1,8 @@
 from database.db import get_connection
-from services.match_service import get_processed_matches
+from services.match_service import (
+    get_processed_matches,
+    filter_weekly_matches
+)
 from data.team_names import TEAM_NAMES
 
 from datetime import datetime, timezone, timedelta
@@ -32,8 +35,6 @@ def get_favorites():
 
     rows = cursor.fetchall()
 
-    print("DEBUG FAVORITES:", rows, flush=True)
-
     conn.close()
 
     return rows
@@ -47,6 +48,8 @@ def get_favorite_matches():
     for team_id, team_name in favorites:
 
         matches = get_processed_matches(team_id)
+
+        matches = filter_weekly_matches(matches)
 
         result.append({
             "team_id": team_id,

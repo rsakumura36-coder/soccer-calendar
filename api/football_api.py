@@ -86,6 +86,16 @@ def get_team_matches(team_id):
 
     data = res.json()
 
+    # ★追加
+    print("API MATCH TOTAL:", len(data.get("matches", [])))
+
+    print(
+        "API COMPETITION:",
+        data.get("matches", [{}])[0].get("competition")
+        if data.get("matches")
+        else "NO MATCH"
+    )
+
     matches = []
 
     for m in data.get("matches", []):

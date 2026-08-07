@@ -95,7 +95,7 @@ def add_favorite():
 
         cursor.execute(
             """
-            INSERT INTO favorites
+            INSERT OR IGNORE INTO favorites
             (
                 team_id,
                 team_name,
